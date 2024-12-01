@@ -67,79 +67,27 @@ export const findClosestElement = (
   activeRight: number
 ): HTMLElement | null => {
   let closestElement: HTMLElement | null = null;
-  let minDistance = Infinity;
-
+  let minXDistance = Infinity;
+  console.log({ elements });
+  if (direction === "ArrowLeft") {
+    console.log({ activeLeft });
+  } else {
+    console.log({ activeRight });
+  }
   for (const element of elements) {
     const rect = element.getBoundingClientRect();
     const left = rect.left;
     const right = rect.right;
 
-    const distance =
-      direction === "ArrowLeft" ? activeLeft - right : left - activeRight;
+    const distance = Math.abs(
+      direction === "ArrowLeft" ? activeLeft - right : left - activeRight
+    );
 
-    if (distance > 0 && distance < minDistance) {
-      minDistance = distance;
+    if (distance >= 0 && distance < minXDistance) {
+      minXDistance = distance;
       closestElement = element;
     }
   }
 
   return closestElement;
 };
-// export const findClosestElement = (
-//   elements: HTMLElement[],
-//   centerX: number,
-//   direction: "ArrowLeft" | "ArrowRight",
-//   top: number,
-//   bottom: number
-// ): HTMLElement | null => {
-//   let closestElement: HTMLElement | null = null;
-//   let minDistance = Infinity;
-
-//   for (const element of elements) {
-//     const rect = element.getBoundingClientRect();
-//     const elementCenterX = (rect.left + rect.right) / 2;
-
-//     if (!isElementOverlapping(top, bottom, element)) {
-//       continue;
-//     }
-
-//     // ArrowLeft: 중심보다 왼쪽, ArrowRight: 중심보다 오른쪽에 있는 요소만 고려
-//     const isValidDirection =
-//       direction === "ArrowLeft"
-//         ? elementCenterX < centerX
-//         : elementCenterX > centerX;
-
-//     if (isValidDirection) {
-//       const distance = Math.abs(elementCenterX - centerX);
-//       if (distance < minDistance) {
-//         minDistance = distance;
-//         closestElement = element;
-//       }
-//     }
-//   }
-
-//   return closestElement;
-// };
-
-// export const getSiblingElement = (
-//   currentElement: HTMLElement,
-//   direction: "ArrowLeft" | "ArrowRight"
-// ): HTMLElement | null => {
-//   let siblingElement =
-//     direction === "ArrowLeft"
-//       ? currentElement.previousElementSibling
-//       : currentElement.nextElementSibling;
-
-//   if (!siblingElement) {
-//     siblingElement =
-//       direction === "ArrowLeft"
-//         ? currentElement.parentElement?.previousElementSibling
-//         : currentElement.parentElement?.nextElementSibling;
-//   }
-//   return siblingElement;
-
-//   //   let sibling =
-//   //     direction === "ArrowLeft"
-//   //       ? currentElement.previousElementSibling
-//   //       : currentElement.nextElementSibling;
-// };
