@@ -14,12 +14,13 @@
   font-size: 18px;
   transition: top 0.3s ease;
   left: 50%;
-  /* display: none; */
+  display: none;
 }
 
 [data-virtual-id] {
   /* outline: 2px solid rgba(30, 144, 255, 0.9); */
   /* outline: 2px solid rgba(21, 134, 248, 0.9); */
+  outline: 2px solid black;
   background-color: red;
   outline-offset: 1px;
   box-shadow: 0 0 10px rgba(135, 206, 250, 0.5);

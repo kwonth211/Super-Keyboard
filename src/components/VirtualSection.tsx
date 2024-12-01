@@ -10,8 +10,10 @@ import "./root.css";
 
 export const VirtualSection = () => {
   const [positionY, setPositionY] = useState(100);
-  const [positionXLeft, setPositionXLeft] = useState(0);
-  const [positionXRight, setPositionXRight] = useState(0);
+  const [activeLeft, setActiveLeft] = useState(0);
+  const [activeRight, setActiveRight] = useState(0);
+  const [activeTop, setActiveTop] = useState(0);
+  const [activeBottom, setActiveBottom] = useState(0);
   let lastScrollY = window.scrollY;
   const ref = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<number>(-1);
@@ -60,11 +62,12 @@ export const VirtualSection = () => {
         const targetElement = findClosestElement(
           nearbyElements,
           event.key,
-          positionXLeft,
-          positionXRight
+          activeLeft,
+          activeRight,
+          activeTop,
+          activeBottom
         );
 
-        // 활성화된 요소 변경
         if (targetElement) {
           setActiveId((prev) => {
             const newActiveId = Number(prev) + 1;
@@ -74,7 +77,6 @@ export const VirtualSection = () => {
         }
       }
 
-      // enter
       if (event.key === "Enter") {
         const activeElement = getActiveElement(activeId);
         if (activeElement) {
@@ -82,7 +84,7 @@ export const VirtualSection = () => {
         }
       }
     },
-    [activeId, positionXLeft, positionXRight, positionY]
+    [activeBottom, activeId, activeLeft, activeRight, activeTop, positionY]
   );
 
   const handleScroll = useCallback(() => {
@@ -124,7 +126,6 @@ export const VirtualSection = () => {
       const newActiveId = Number(prev) + 1;
       activeElement.dataset.virtualId = newActiveId.toString();
 
-      console.log(activeElement);
       return newActiveId;
     });
   }, [positionY]);
@@ -132,15 +133,18 @@ export const VirtualSection = () => {
   useEffect(() => {
     const activeElement = getActiveElement(activeId);
 
+    console.log(activeElement);
+
     const rect = activeElement?.getBoundingClientRect();
 
-    setPositionXLeft(rect?.left ?? 0);
-    setPositionXRight(rect?.right ?? 0);
+    setActiveLeft(rect?.left ?? 0);
+    setActiveRight(rect?.right ?? 0);
+    setActiveTop(rect?.top ?? 0);
+    setActiveBottom(rect?.bottom ?? 0);
     return () => {
       if (!activeElement) {
         return;
       }
-      console.log(activeElement);
       activeElement.removeAttribute("data-virtual-id");
     };
   }, [activeId]);

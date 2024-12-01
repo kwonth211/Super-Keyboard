@@ -1,7 +1,7 @@
 해야할것
 
-1. left/right 시 2칸씩 이동하는 문제
-2. left/right 시 x 축 뿐만 아니라 y도 가장 가까운 엘리먼드토 이동
+1. left/right 시 2칸씩 이동하는 문제 🅾️
+2. left/right 시 x 축 뿐만 아니라 y도 가장 가까운 엘리먼드토 이동 🅾️
 3. top/bottom 시 y 축 뿐만 아니라 x 축도 보도록
 3. unmount가 적정한 시점에 되도록
 4. iframe css 적용 되도록

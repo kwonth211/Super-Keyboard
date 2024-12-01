@@ -59,32 +59,51 @@ export const isElementClickable = (element: Element): boolean => {
 export const getActiveElement = (activeId: number): HTMLElement | null => {
   return document.querySelector(`[data-virtual-id="${activeId}"]`);
 };
-
 export const findClosestElement = (
   elements: HTMLElement[],
-  direction: "ArrowLeft" | "ArrowRight",
+  direction: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown",
   activeLeft: number,
-  activeRight: number
+  activeRight: number,
+  activeTop: number,
+  activeBottom: number
 ): HTMLElement | null => {
   let closestElement: HTMLElement | null = null;
-  let minXDistance = Infinity;
-  console.log({ elements });
-  if (direction === "ArrowLeft") {
-    console.log({ activeLeft });
-  } else {
-    console.log({ activeRight });
-  }
+  let minDistance = Infinity;
+
+  // 활성 요소의 중심 좌표 계산
+  const activeCenterX = (activeLeft + activeRight) / 2;
+  const activeCenterY = (activeTop + activeBottom) / 2;
+
   for (const element of elements) {
     const rect = element.getBoundingClientRect();
-    const left = rect.left;
-    const right = rect.right;
+    const left = rect.left + window.scrollX;
+    const right = rect.right + window.scrollX;
+    const top = rect.top + window.scrollY;
+    const bottom = rect.bottom + window.scrollY;
+    // 대상 요소의 중심 좌표 계산
+    const elementCenterX = (left + right) / 2;
+    const elementCenterY = (top + bottom) / 2;
 
-    const distance = Math.abs(
-      direction === "ArrowLeft" ? activeLeft - right : left - activeRight
+    // 방향에 따른 유효성 조건
+    const isValidDirection =
+      (direction === "ArrowLeft" && right <= activeRight) || // 왼쪽
+      (direction === "ArrowRight" && left >= activeLeft) || // 오른쪽
+      (direction === "ArrowUp" && bottom <= activeTop) || // 위쪽
+      (direction === "ArrowDown" && top >= activeBottom); // 아래쪽
+
+    if (!isValidDirection) {
+      continue;
+    }
+
+    // 유클리드 거리 계산
+    const distance = Math.sqrt(
+      (activeCenterX - elementCenterX) ** 2 +
+        (activeCenterY - elementCenterY) ** 2
     );
 
-    if (distance >= 0 && distance < minXDistance) {
-      minXDistance = distance;
+    // 최소 거리 갱신
+    if (distance < minDistance) {
+      minDistance = distance;
       closestElement = element;
     }
   }
