@@ -1,95 +1,111 @@
-import { SPEED, VIRTUAL_SECTION_ID } from "@/constants/constants";
-import {
-  findClosestElement,
-  getActiveElement,
-  getNearbyElements,
-} from "@/utils/elements";
+import { getVisibleElements } from "@/utils/elements";
 import { throttle } from "lodash-es";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import "./root.css";
 
 export const VirtualSection = () => {
-  const [positionY, setPositionY] = useState(100);
-  const [activeLeft, setActiveLeft] = useState(0);
-  const [activeRight, setActiveRight] = useState(0);
-  const [activeTop, setActiveTop] = useState(0);
-  const [activeBottom, setActiveBottom] = useState(0);
-  let lastScrollY = window.scrollY;
-  const ref = useRef<HTMLDivElement>(null);
-  const [activeId, setActiveId] = useState<number>(-1);
+  const activeElement = useRef<HTMLElement | null>(null);
+  const allElements = useRef<HTMLElement[]>([]);
 
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      const sectionElement = document.getElementById(VIRTUAL_SECTION_ID);
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const originRect = activeElement.current?.getBoundingClientRect();
+    if (!originRect || !allElements.current) return;
 
-      if (!sectionElement) {
-        return;
-      }
-      if (!ref.current) {
-        return;
-      }
-
-      const top = positionY;
-      const bottom = top + ref.current?.offsetHeight;
-
-      const sectionHeight = sectionElement.offsetHeight;
-      const viewportHeight = window.innerHeight;
-
-      // scroll된 좌표 + 화면 길이 - 섹션 길이
-      const maxPosition = window.scrollY + viewportHeight - sectionHeight;
-
-      if (event.key === "ArrowUp") {
-        setPositionY((prev) => {
-          const newPos = Math.max(prev - SPEED, window.scrollY);
-          return newPos;
-        });
-      } else if (event.key === "ArrowDown") {
-        setPositionY((prev) => {
-          const newPos = Math.min(prev + SPEED, maxPosition);
-          return newPos;
-        });
-      } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        const activeElement = getActiveElement(activeId);
-
-        if (!activeElement) {
-          return;
+    const sortedElements = allElements.current
+      .filter((element: HTMLElement) => element !== activeElement.current) // 현재 엘리먼트 제외
+      .map((element: HTMLElement) => {
+        const rect = element.getBoundingClientRect();
+        return { element, rect };
+      })
+      .filter(({ rect }) => {
+        // 방향 필터링: 해당 방향에 있는 엘리먼트만 포함
+        switch (event.key) {
+          case "ArrowUp":
+            return rect.bottom <= originRect.top; // 위쪽
+          case "ArrowDown":
+            return rect.top >= originRect.bottom; // 아래쪽
+          case "ArrowLeft":
+            return rect.right <= originRect.left; // 왼쪽
+          case "ArrowRight":
+            return rect.left >= originRect.right; // 오른쪽
+          default:
+            return false;
         }
-
-        const nearbyElements = getNearbyElements(top, bottom).filter(
-          (el) => el !== activeElement
-        );
-
-        const targetElement = findClosestElement(
-          nearbyElements,
-          event.key,
-          activeLeft,
-          activeRight,
-          activeTop,
-          activeBottom
-        );
-
-        if (targetElement) {
-          setActiveId((prev) => {
-            const newActiveId = Number(prev) + 1;
-            targetElement.dataset.virtualId = newActiveId.toString();
-            return newActiveId;
-          });
+      })
+      .sort((a, b) => {
+        // 1차 정렬: 주 축 기준으로 정렬
+        switch (event.key) {
+          case "ArrowUp":
+            return (
+              Math.abs(a.rect.bottom - originRect.top) -
+              Math.abs(b.rect.bottom - originRect.top)
+            );
+          case "ArrowDown":
+            return (
+              Math.abs(a.rect.top - originRect.bottom) -
+              Math.abs(b.rect.top - originRect.bottom)
+            );
+          case "ArrowLeft":
+            return (
+              Math.abs(a.rect.right - originRect.left) -
+              Math.abs(b.rect.right - originRect.left)
+            );
+          case "ArrowRight":
+            return (
+              Math.abs(a.rect.left - originRect.right) -
+              Math.abs(b.rect.left - originRect.right)
+            );
+          default:
+            return 0;
         }
-      }
-
-      if (event.key === "Enter") {
-        const activeElement = getActiveElement(activeId);
-        if (activeElement) {
-          activeElement.click();
+      })
+      .sort((a, b) => {
+        // 2차 정렬: 부 축 기준으로 정렬
+        switch (event.key) {
+          case "ArrowUp":
+          case "ArrowDown":
+            return (
+              Math.abs(a.rect.left - originRect.left) -
+              Math.abs(b.rect.left - originRect.left)
+            );
+          case "ArrowLeft":
+          case "ArrowRight":
+            return (
+              Math.abs(a.rect.top - originRect.top) -
+              Math.abs(b.rect.top - originRect.top)
+            );
+          default:
+            return 0;
         }
-      }
-    },
-    [activeBottom, activeId, activeLeft, activeRight, activeTop, positionY]
-  );
+      });
+
+    // 정렬된 리스트 출력
+
+    // 가장 가까운 엘리먼트를 활성화
+    if (sortedElements.length > 0) {
+      const closestElement = sortedElements[0].element;
+      console.log(closestElement);
+      closestElement.focus();
+      setActiveElement(closestElement);
+    }
+  }, []);
+
+  const setActiveElement = (element: HTMLElement) => {
+    if (activeElement.current) {
+      activeElement.current.removeAttribute("data-is-virtual");
+    }
+
+    activeElement.current = element;
+    element.dataset.isVirtual = "true";
+  };
 
   const handleScroll = useCallback(() => {
-    const scrollDelta = window.scrollY - lastScrollY;
-    lastScrollY = window.scrollY;
+    const elements = getVisibleElements();
+    allElements.current = elements;
+
+    // console.log(elements);
+    // const scrollDelta = window.scrollY - lastScrollY;
+    // lastScrollY = window.scrollY;
 
     // setPositionY((prev) => {
     //   const newPosition = prev + scrollDelta;
@@ -97,6 +113,22 @@ export const VirtualSection = () => {
     //   return newPosition;
     // });
   }, []);
+
+  useEffect(() => {
+    const elements = getVisibleElements();
+
+    setActiveElement(elements[1]);
+
+    allElements.current = elements;
+  }, []);
+
+  useEffect(() => {
+    if (!activeElement.current) {
+      return;
+    }
+
+    console.log(activeElement);
+  }, [activeElement.current]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -107,55 +139,13 @@ export const VirtualSection = () => {
     };
   }, [handleKeyDown, handleScroll]);
 
-  useEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-
-    const top = positionY;
-    const bottom = top + ref.current?.offsetHeight;
-    const overlappingElements = getNearbyElements(top, bottom);
-
-    const activeElement = overlappingElements[0];
-
-    if (!activeElement) {
-      return;
-    }
-
-    setActiveId((prev) => {
-      const newActiveId = Number(prev) + 1;
-      activeElement.dataset.virtualId = newActiveId.toString();
-
-      return newActiveId;
-    });
-  }, [positionY]);
-
-  useEffect(() => {
-    const activeElement = getActiveElement(activeId);
-
-    console.log(activeElement);
-
-    const rect = activeElement?.getBoundingClientRect();
-
-    setActiveLeft(rect?.left ?? 0);
-    setActiveRight(rect?.right ?? 0);
-    setActiveTop(rect?.top ?? 0);
-    setActiveBottom(rect?.bottom ?? 0);
-    return () => {
-      if (!activeElement) {
-        return;
-      }
-      activeElement.removeAttribute("data-virtual-id");
-    };
-  }, [activeId]);
-
   return (
     <div
       id="virtual-section"
-      ref={ref}
+      // ref={ref}
       style={{
         position: "absolute",
-        top: `${positionY}px`,
+        // top: `${positionY}px`,
       }}
     ></div>
   );

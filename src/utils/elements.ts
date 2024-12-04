@@ -1,5 +1,28 @@
 import { VIRTUAL_SECTION_ID } from "@/constants/constants";
 
+export const getVisibleElements = (): HTMLElement[] => {
+  const elements = Array.from(document.querySelectorAll("*")) as HTMLElement[];
+  const visibleElements = elements.filter((element) => {
+    const rect = element.getBoundingClientRect();
+
+    const isInViewport =
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth);
+
+    const hasSize = rect.width > 0 && rect.height > 0;
+
+    const style = getComputedStyle(element);
+    const isVisible = style.visibility !== "hidden" && style.display !== "none";
+
+    return isInViewport && hasSize && isVisible && isElementClickable(element);
+  });
+
+  return visibleElements;
+};
+
 export const getNearbyElements = (
   top: number,
   bottom: number
