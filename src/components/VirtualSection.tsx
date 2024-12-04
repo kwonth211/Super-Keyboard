@@ -85,6 +85,7 @@ export const VirtualSection = () => {
     if (sortedElements.length > 0) {
       const closestElement = sortedElements[0].element;
       console.log(closestElement);
+      closestElement.focus();
       setActiveElement(closestElement);
     }
   }, []);
