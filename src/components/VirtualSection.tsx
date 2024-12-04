@@ -8,16 +8,9 @@ export const VirtualSection = () => {
   const allElements = useRef<HTMLElement[]>([]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (event.key === "Enter") {
-      if (activeElement.current) {
-        activeElement.current.click();
-      }
-    }
-
     const originRect = activeElement.current?.getBoundingClientRect();
     if (!originRect || !allElements.current) return;
 
-    // 방향에 따라 특정 기준으로 필터링 및 정렬
     const sortedElements = allElements.current
       .filter((element: HTMLElement) => element !== activeElement.current) // 현재 엘리먼트 제외
       .map((element: HTMLElement) => {
@@ -40,50 +33,57 @@ export const VirtualSection = () => {
         }
       })
       .sort((a, b) => {
-        // 방향에 따른 정렬
+        // 1차 정렬: 주 축 기준으로 정렬
         switch (event.key) {
           case "ArrowUp":
-            // 위쪽: Y축(top 또는 bottom)의 차이가 가장 작은 순서
             return (
-              Math.abs(a.rect.right - originRect.right) -
-                Math.abs(b.rect.right - originRect.right) ||
-              Math.abs(a.rect.top - originRect.top) -
-                Math.abs(b.rect.top - originRect.top)
+              Math.abs(a.rect.bottom - originRect.top) -
+              Math.abs(b.rect.bottom - originRect.top)
             );
           case "ArrowDown":
-            // 아래쪽: Y축(top 또는 bottom)의 차이가 가장 작은 순서
             return (
-              Math.abs(a.rect.left - originRect.left) -
-                Math.abs(b.rect.left - originRect.left) ||
-              Math.abs(a.rect.bottom - originRect.bottom) -
-                Math.abs(b.rect.bottom - originRect.bottom)
+              Math.abs(a.rect.top - originRect.bottom) -
+              Math.abs(b.rect.top - originRect.bottom)
             );
           case "ArrowLeft":
-            // 왼쪽: X축(left 또는 right)의 차이가 가장 작은 순서
             return (
-              Math.abs(a.rect.top - originRect.top) -
-                Math.abs(b.rect.top - originRect.top) ||
-              Math.abs(a.rect.right - originRect.right) -
-                Math.abs(b.rect.right - originRect.right)
+              Math.abs(a.rect.right - originRect.left) -
+              Math.abs(b.rect.right - originRect.left)
             );
           case "ArrowRight":
-            // 오른쪽: X축(left 또는 right)의 차이가 가장 작은 순서
+            return (
+              Math.abs(a.rect.left - originRect.right) -
+              Math.abs(b.rect.left - originRect.right)
+            );
+          default:
+            return 0;
+        }
+      })
+      .sort((a, b) => {
+        // 2차 정렬: 부 축 기준으로 정렬
+        switch (event.key) {
+          case "ArrowUp":
+          case "ArrowDown":
+            return (
+              Math.abs(a.rect.left - originRect.left) -
+              Math.abs(b.rect.left - originRect.left)
+            );
+          case "ArrowLeft":
+          case "ArrowRight":
             return (
               Math.abs(a.rect.top - originRect.top) -
-                Math.abs(b.rect.top - originRect.top) ||
-              Math.abs(a.rect.left - originRect.left) -
-                Math.abs(b.rect.left - originRect.left)
+              Math.abs(b.rect.top - originRect.top)
             );
           default:
             return 0;
         }
       });
 
-    console.log(sortedElements);
+    // 정렬된 리스트 출력
+
     // 가장 가까운 엘리먼트를 활성화
     if (sortedElements.length > 0) {
       const closestElement = sortedElements[0].element;
-
       console.log(closestElement);
       setActiveElement(closestElement);
     }
