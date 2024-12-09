@@ -1,15 +1,32 @@
-import { getVisibleElements } from "@/utils/elements";
+import { getVisibleElements, isElementClickable } from "@/utils/elements";
 import { throttle } from "lodash-es";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./root.css";
 
 export const VirtualSection = () => {
   const activeElement = useRef<HTMLElement | null>(null);
   const allElements = useRef<HTMLElement[]>([]);
 
+  const [trackerStyle, setTrackerStyle] = useState({
+    left: 0,
+    top: 0,
+    width: 10,
+    height: 10,
+    transition: "0.1s ease-in-out",
+  });
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const originRect = activeElement.current?.getBoundingClientRect();
-    if (!originRect || !allElements.current) return;
+
+    if (!originRect || !allElements.current) {
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (activeElement.current) {
+        activeElement.current.click();
+      }
+    }
 
     const sortedElements = allElements.current
       .filter((element: HTMLElement) => element !== activeElement.current) // 현재 엘리먼트 제외
@@ -21,13 +38,13 @@ export const VirtualSection = () => {
         // 방향 필터링: 해당 방향에 있는 엘리먼트만 포함
         switch (event.key) {
           case "ArrowUp":
-            return rect.bottom <= originRect.top; // 위쪽
+            return rect.bottom <= originRect.top;
           case "ArrowDown":
-            return rect.top >= originRect.bottom; // 아래쪽
+            return rect.top >= originRect.bottom;
           case "ArrowLeft":
-            return rect.right <= originRect.left; // 왼쪽
+            return rect.right <= originRect.left;
           case "ArrowRight":
-            return rect.left >= originRect.right; // 오른쪽
+            return rect.left >= originRect.right;
           default:
             return false;
         }
@@ -60,6 +77,10 @@ export const VirtualSection = () => {
         }
       })
       .sort((a, b) => {
+        // if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        //   return 0;
+        // }
+
         // 2차 정렬: 부 축 기준으로 정렬
         switch (event.key) {
           case "ArrowUp":
@@ -79,13 +100,11 @@ export const VirtualSection = () => {
         }
       });
 
-    // 정렬된 리스트 출력
-
-    // 가장 가까운 엘리먼트를 활성화
     if (sortedElements.length > 0) {
       const closestElement = sortedElements[0].element;
-      console.log(closestElement);
-      closestElement.focus();
+
+      // console.log(closestElement);
+      // closestElement.focus();
       setActiveElement(closestElement);
     }
   }, []);
@@ -96,39 +115,57 @@ export const VirtualSection = () => {
     }
 
     activeElement.current = element;
+    // element.style.background = "red";
     element.dataset.isVirtual = "true";
+
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2 + window.scrollX;
+    const centerY = rect.top + rect.height / 2 + window.scrollY;
+
+    setTrackerStyle((prev) => ({
+      ...prev,
+      left: centerX - 5,
+      top: centerY - 5,
+    }));
   };
 
   const handleScroll = useCallback(() => {
     const elements = getVisibleElements();
     allElements.current = elements;
-
-    // console.log(elements);
-    // const scrollDelta = window.scrollY - lastScrollY;
-    // lastScrollY = window.scrollY;
-
-    // setPositionY((prev) => {
-    //   const newPosition = prev + scrollDelta;
-
-    //   return newPosition;
-    // });
   }, []);
 
   useEffect(() => {
     const elements = getVisibleElements();
 
-    setActiveElement(elements[1]);
+    // const index = Math.floor(elements.length / 3);
+
+    setActiveElement(elements[0]);
 
     allElements.current = elements;
   }, []);
 
   useEffect(() => {
-    if (!activeElement.current) {
-      return;
-    }
+    if (activeElement.current?.tagName === "IFRAME") {
+      const iframe = activeElement.current as HTMLIFrameElement;
+      const iframeDocument =
+        iframe.contentDocument || iframe.contentWindow?.document;
 
-    console.log(activeElement);
-  }, [activeElement.current]);
+      if (iframeDocument) {
+        const potentialElements = Array.from(
+          iframeDocument.body.querySelectorAll("*")
+        ) as HTMLElement[];
+
+        const clickableElements = potentialElements.filter((x) =>
+          isElementClickable(x)
+        );
+
+        if (clickableElements.length > 0) {
+          // iframe 내부의 첫 번째 클릭 가능한 요소를 활성화
+          setActiveElement(clickableElements[0]);
+        }
+      }
+    }
+  }, [trackerStyle]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -141,12 +178,16 @@ export const VirtualSection = () => {
 
   return (
     <div
-      id="virtual-section"
-      // ref={ref}
+      id="tracker"
       style={{
         position: "absolute",
-        // top: `${positionY}px`,
+        backgroundColor: "rgba(0, 123, 255, 0.3)",
+        border: "2px solid rgba(0, 123, 255, 0.8)",
+        zIndex: "999999",
+        borderRadius: "50%",
+        pointerEvents: "none",
+        ...trackerStyle,
       }}
-    ></div>
+    />
   );
 };

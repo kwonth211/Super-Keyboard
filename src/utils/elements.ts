@@ -66,6 +66,10 @@ export const isElementClickable = (element: Element): boolean => {
   if (tagName === "button" || tagName === "a") {
     return true;
   }
+  // TODO
+  if (tagName === "iframe") {
+    return false;
+  }
 
   const tabIndex = (element as HTMLElement).tabIndex;
   if (tabIndex >= 0) {
